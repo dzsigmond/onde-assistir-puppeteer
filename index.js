@@ -1,53 +1,30 @@
 import express from 'express';
-import bodyParser from 'body-parser';
+import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(bodyParser.json());
+app.use(cors());
+app.use(express.json());
 
-// Rota POST diretamente em "/"
-app.post('/', async (req, res) => {
+// ROTA DEFINIDA AQUI
+app.post('/extracao', async (req, res) => {
   try {
     const { urls } = req.body;
-
     if (!urls || !Array.isArray(urls)) {
-      return res.status(400).json({ erro: 'Formato inválido. Envie um array de URLs.' });
+      return res.status(400).json({ error: 'Parâmetro "urls" inválido' });
     }
 
-    const resultados = await Promise.all(
-      urls.map(async (url) => {
-        try {
-          const response = await fetch(url);
-          const html = await response.text();
-          const canais = extrairOndeAssistir(html);
+    // Simulação de retorno básico
+    const resultados = urls.map((url) => ({
+      url,
+      canais: ['Globo', 'SporTV'],
+    }));
 
-          return { url, onde_assistir: canais || 'Indefinido' };
-        } catch (erro) {
-          return { url, erro: 'Erro ao processar a URL.' };
-        }
-      })
-    );
-
-    res.json(resultados);
-  } catch (erro) {
-    console.error('Erro no POST /:', erro);
-    res.status(500).json({ erro: 'Erro interno do servidor.' });
+    res.json({ resultados });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro interno no servidor' });
   }
-});
-
-// Função de extração
-function extrairOndeAssistir(html) {
-  const regexSpan = /<span[^>]*>(.*?)<\/span>/g;
-  const matches = [...html.matchAll(regexSpan)];
-  const textos = matches.map((m) => m[1].trim()).filter((t) => t && t.length <= 32);
-
-  return textos.length > 0 ? textos.join(', ') : null;
-}
-
-// Rota GET simples para teste
-app.get('/', (req, res) => {
-  res.send('API operacional na raiz /');
 });
 
 app.listen(PORT, () => {
