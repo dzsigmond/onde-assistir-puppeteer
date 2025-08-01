@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import chromium from 'chrome-aws-lambda';
-import puppeteer from 'puppeteer-core';
+import puppeteer from 'puppeteer';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,36 +15,23 @@ app.post('/extracao', async (req, res) => {
       return res.status(400).json({ error: 'Parâmetro "urls" inválido' });
     }
 
-    const browser = await puppeteer.launch({
-      args: chromium.args,
-      defaultViewport: chromium.defaultViewport,
-      executablePath: await chromium.executablePath,
-      headless: chromium.headless,
-    });
+    const resultados = await Promise.all(urls.map(async (url) => {
+      const navegador = await puppeteer.launch({ headless: true });
+      const pagina = await navegador.newPage();
+      await pagina.goto(url);
 
-    const page = await browser.newPage();
+      // Simulação: você vai depois melhorar isso
+      await navegador.close();
 
-    const resultados = [];
-
-    for (const url of urls) {
-      await page.goto(url, { waitUntil: 'domcontentloaded' });
-
-      // Lógica fictícia por enquanto
-      resultados.push({
+      return {
         url,
-        canal: 'Globo, Premiere',
-        horario: '21:30',
-        mandante: 'Time A',
-        visitante: 'Time B',
-      });
-    }
-
-    await browser.close();
+        canais: ['Globo', 'SporTV'],
+      };
+    }));
 
     res.json({ resultados });
   } catch (e) {
-    console.error('Erro ao iniciar o navegador:', e);
-    res.status(500).json({ error: 'Erro ao iniciar o navegador: ' + e.message });
+    res.status(500).json({ error: `Erro ao iniciar o navegador: ${e.message}` });
   }
 });
 
