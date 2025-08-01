@@ -1,3 +1,4 @@
+// index.js
 import express from 'express';
 import bodyParser from 'body-parser';
 import extrairRouter from './routes/extrair.js';
