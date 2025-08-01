@@ -1,7 +1,6 @@
 import express from 'express';
 import cors from 'cors';
-import puppeteer from 'puppeteer-core';
-import chromium from 'chrome-aws-lambda';
+import puppeteer from 'puppeteer';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -10,24 +9,19 @@ app.use(cors());
 app.use(express.json());
 
 app.post('/extracao', async (req, res) => {
-  const { urls } = req.body;
-
-  if (!urls || !Array.isArray(urls)) {
-    return res.status(400).json({ error: 'Parâmetro "urls" inválido' });
-  }
-
-  let browser = null;
-  const resultados = [];
-
   try {
-    browser = await puppeteer.launch({
-      args: chromium.args,
-      executablePath: await chromium.executablePath,
-      headless: chromium.headless,
-      defaultViewport: chromium.defaultViewport,
+    const { urls } = req.body;
+    if (!urls || !Array.isArray(urls)) {
+      return res.status(400).json({ error: 'Parâmetro "urls" inválido' });
+    }
+
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox']
     });
 
     const page = await browser.newPage();
+    const resultados = [];
 
     for (const url of urls) {
       try {
@@ -39,17 +33,17 @@ app.post('/extracao', async (req, res) => {
         });
 
         resultados.push({ url, canal });
-      } catch (err) {
-        resultados.push({ url, canal: 'Erro ao acessar: ' + err.message });
+      } catch (erroInterno) {
+        resultados.push({ url, canal: 'Erro interno ao extrair' });
       }
     }
-  } catch (err) {
-    return res.status(500).json({ error: 'Erro ao iniciar o navegador: ' + err.message });
-  } finally {
-    if (browser) await browser.close();
-  }
 
-  res.json({ resultados });
+    await browser.close();
+    res.json({ resultados });
+
+  } catch (erro) {
+    res.status(500).json({ error: 'Erro ao iniciar o navegador: ' + erro.message });
+  }
 });
 
 app.listen(PORT, () => {
