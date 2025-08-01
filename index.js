@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
-import puppeteer from 'puppeteer';
+import chromium from 'chrome-aws-lambda';
+import puppeteer from 'puppeteer-core';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -16,33 +17,35 @@ app.post('/extracao', async (req, res) => {
     }
 
     const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox']
+      args: chromium.args,
+      defaultViewport: chromium.defaultViewport,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
     });
 
     const page = await browser.newPage();
+
     const resultados = [];
 
     for (const url of urls) {
-      try {
-        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+      await page.goto(url, { waitUntil: 'domcontentloaded' });
 
-        const canal = await page.evaluate(() => {
-          const el = document.querySelector('div[class^="styles_informations__"]');
-          return el ? el.innerText.trim() : 'Indefinido';
-        });
-
-        resultados.push({ url, canal });
-      } catch (erroInterno) {
-        resultados.push({ url, canal: 'Erro interno ao extrair' });
-      }
+      // Lógica fictícia por enquanto
+      resultados.push({
+        url,
+        canal: 'Globo, Premiere',
+        horario: '21:30',
+        mandante: 'Time A',
+        visitante: 'Time B',
+      });
     }
 
     await browser.close();
-    res.json({ resultados });
 
-  } catch (erro) {
-    res.status(500).json({ error: 'Erro ao iniciar o navegador: ' + erro.message });
+    res.json({ resultados });
+  } catch (e) {
+    console.error('Erro ao iniciar o navegador:', e);
+    res.status(500).json({ error: 'Erro ao iniciar o navegador: ' + e.message });
   }
 });
 
