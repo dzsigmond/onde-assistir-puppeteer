@@ -1,14 +1,15 @@
 import express from 'express';
-import extrairRoute from './routes/extrair.js';
+import bodyParser from 'body-parser';
+import extrairRouter from './routes/extrair.js';
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-app.use('/extrair', extrairRoute);
+app.use(bodyParser.json());
+app.use('/extrair', extrairRouter);
 
 app.get('/', (req, res) => {
-  res.send('API está no ar!');
+  res.send('API está funcionando!');
 });
 
 app.listen(PORT, () => {
