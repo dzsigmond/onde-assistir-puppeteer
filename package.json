@@ -8,10 +8,14 @@
   },
   "dependencies": {
     "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "puppeteer": "^19.7.5"
+    "puppeteer": "^19.7.5",
+    "cors": "^2.8.5"
   },
   "engines": {
     "node": ">=16 <20"
+  },
+  "puppeteer": {
+    "download_host": "https://storage.googleapis.com",
+    "default_browser_revision": "1108766"
   }
 }
