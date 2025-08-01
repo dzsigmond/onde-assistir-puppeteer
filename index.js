@@ -6,8 +6,8 @@ const PORT = process.env.PORT || 3000;
 
 app.use(bodyParser.json());
 
-// Nova rota: /extracao
-app.post('/extracao', async (req, res) => {
+// Rota POST diretamente em "/"
+app.post('/', async (req, res) => {
   try {
     const { urls } = req.body;
 
@@ -31,30 +31,25 @@ app.post('/extracao', async (req, res) => {
 
     res.json(resultados);
   } catch (erro) {
-    console.error('Erro no endpoint /extracao:', erro);
+    console.error('Erro no POST /:', erro);
     res.status(500).json({ erro: 'Erro interno do servidor.' });
   }
 });
 
-// Função auxiliar para extrair canais da página HTML
+// Função de extração
 function extrairOndeAssistir(html) {
   const regexSpan = /<span[^>]*>(.*?)<\/span>/g;
   const matches = [...html.matchAll(regexSpan)];
   const textos = matches.map((m) => m[1].trim()).filter((t) => t && t.length <= 32);
 
-  if (textos.length > 0) {
-    return textos.join(', ');
-  }
-
-  return null;
+  return textos.length > 0 ? textos.join(', ') : null;
 }
 
-// Rota GET padrão
+// Rota GET simples para teste
 app.get('/', (req, res) => {
-  res.send('API está funcionando!');
+  res.send('API operacional na raiz /');
 });
 
-// Inicia servidor
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);
 });
