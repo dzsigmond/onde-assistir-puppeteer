@@ -1,5 +1,6 @@
 import express from 'express';
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-core';
+import chromium from 'chrome-aws-lambda';
 
 const router = express.Router();
 
@@ -10,28 +11,42 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ erro: 'Formato inválido. Envie uma lista de URLs.' });
   }
 
-  const browser = await puppeteer.launch({ headless: 'new' });
-  const page = await browser.newPage();
+  let browser = null;
+  const resultados = [];
 
-  let resultados = [];
+  try {
+    browser = await puppeteer.launch({
+      args: chromium.args,
+      executablePath: await chromium.executablePath,
+      headless: chromium.headless,
+      defaultViewport: chromium.defaultViewport,
+    });
 
-  for (const url of urls) {
-    try {
-      await page.goto(url, { waitUntil: 'networkidle2' });
+    const page = await browser.newPage();
 
-      const canal = await page.evaluate(() => {
-        const el = document.querySelector('div.styles_informations__pXcxB');
-        return el ? el.innerText.trim() : 'Indefinido';
-      });
+    for (const url of urls) {
+      try {
+        await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
 
-      resultados.push({ url, canal });
+        const canal = await page.evaluate(() => {
+          const el = document.querySelector('div[class^="styles_informations__"]');
+          return el ? el.innerText.trim() : 'Indefinido';
+        });
 
-    } catch (err) {
-      resultados.push({ url, canal: 'Erro ao acessar: ' + err.message });
+        resultados.push({ url, canal });
+
+      } catch (err) {
+        resultados.push({ url, canal: 'Erro: ' + err.message });
+      }
+    }
+  } catch (err) {
+    return res.status(500).json({ erro: 'Erro ao iniciar browser: ' + err.message });
+  } finally {
+    if (browser !== null) {
+      await browser.close();
     }
   }
 
-  await browser.close();
   res.json(resultados);
 });
 
