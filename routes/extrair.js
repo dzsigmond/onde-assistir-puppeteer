@@ -1,3 +1,4 @@
+// routes/extrair.js
 import express from 'express';
 import puppeteer from 'puppeteer-core';
 import chromium from 'chrome-aws-lambda';
@@ -17,7 +18,7 @@ router.post('/', async (req, res) => {
   try {
     browser = await puppeteer.launch({
       args: chromium.args,
-      executablePath: await chromium.executablePath,
+      executablePath: await chromium.executablePath || '/usr/bin/chromium-browser',
       headless: chromium.headless,
       defaultViewport: chromium.defaultViewport,
     });
@@ -39,15 +40,15 @@ router.post('/', async (req, res) => {
         resultados.push({ url, canal: 'Erro: ' + err.message });
       }
     }
-  } catch (err) {
-    return res.status(500).json({ erro: 'Erro ao iniciar browser: ' + err.message });
-  } finally {
-    if (browser !== null) {
-      await browser.close();
-    }
-  }
 
-  res.json(resultados);
+    await browser.close();
+
+    res.json(resultados);
+
+  } catch (err) {
+    if (browser) await browser.close();
+    return res.status(500).json({ erro: 'Erro ao iniciar browser: ' + err.message });
+  }
 });
 
 export default router;
